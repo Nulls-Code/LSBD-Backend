@@ -1,0 +1,231 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ========================
+// ENUMS
+// ========================
+
+enum UserRole {
+  ADMIN
+  MANAGER
+  EMPLOYEE
+}
+
+enum CourierRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum ShipmentStatus {
+  PROCESSING
+  IN_TRANSIT
+  ARRIVED_AT_HUB
+  OUT_FOR_DELIVERY
+  DELIVERED
+  FAILED_DELIVERY
+  ON_HOLD
+  CANCELLED
+  RETURNED
+}
+
+enum WeightUnit {
+  KG
+  LB
+}
+
+// ========================
+// MODELS
+// ========================
+
+model User {
+  id           String   @id @default(uuid()) @db.Uuid
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  firstName    String   @map("first_name")
+  lastName     String   @map("last_name")
+  role         UserRole @default(EMPLOYEE)
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  createdRequests   CourierRequest[] @relation("RequestCreatedBy")
+  reviewedRequests  CourierRequest[] @relation("RequestReviewedBy")
+  createdShipments  Shipment[]      @relation("ShipmentCreatedBy")
+  assignedShipments Shipment[]      @relation("ShipmentAssignedTo")
+  trackingUpdates   TrackingUpdate[]
+
+  @@index([role])
+  @@index([isActive])
+  @@map("users")
+}
+
+model Customer {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  email     String?  @unique
+  phone     String
+  company   String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  courierRequests CourierRequest[]
+
+  @@index([phone])
+  @@map("customers")
+}
+
+model Location {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  code      String   @unique
+  city      String
+  country   String
+  address   String?
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  originRequests       CourierRequest[] @relation("RequestOrigin")
+  destinationRequests  CourierRequest[] @relation("RequestDestination")
+  originShipments      Shipment[]      @relation("ShipmentOrigin")
+  destinationShipments Shipment[]      @relation("ShipmentDestination")
+  currentShipments     Shipment[]      @relation("ShipmentCurrentLocation")
+  trackingUpdates      TrackingUpdate[]
+
+  @@index([city])
+  @@index([country])
+  @@index([isActive])
+  @@map("locations")
+}
+
+model CourierRequest {
+  id                    String               @id @default(uuid()) @db.Uuid
+  customerId            String               @map("customer_id") @db.Uuid
+  senderName            String               @map("sender_name")
+  senderPhone           String               @map("sender_phone")
+  senderEmail           String?              @map("sender_email")
+  senderAddress         String               @map("sender_address")
+  recipientName         String               @map("recipient_name")
+  recipientPhone        String               @map("recipient_phone")
+  recipientEmail        String?              @map("recipient_email")
+  recipientAddress      String               @map("recipient_address")
+  originLocationId      String               @map("origin_location_id") @db.Uuid
+  destinationLocationId String               @map("destination_location_id") @db.Uuid
+  packageDescription    String               @map("package_description")
+  packageWeight         Decimal?             @map("package_weight") @db.Decimal(10, 2)
+  weightUnit            WeightUnit?          @map("weight_unit")
+  packageCount          Int                  @default(1) @map("package_count")
+  requestNotes          String?              @map("request_notes")
+  status                CourierRequestStatus @default(PENDING)
+  reviewedById          String?              @map("reviewed_by_id") @db.Uuid
+  reviewNotes           String?              @map("review_notes")
+  reviewedAt            DateTime?            @map("reviewed_at")
+  createdById           String?              @map("created_by_id") @db.Uuid
+  createdAt             DateTime             @default(now()) @map("created_at")
+  updatedAt             DateTime             @updatedAt @map("updated_at")
+
+  // Relations
+  customer            Customer @relation(fields: [customerId], references: [id])
+  originLocation      Location @relation("RequestOrigin", fields: [originLocationId], references: [id])
+  destinationLocation Location @relation("RequestDestination", fields: [destinationLocationId], references: [id])
+  reviewedBy          User?    @relation("RequestReviewedBy", fields: [reviewedById], references: [id])
+  createdBy           User?    @relation("RequestCreatedBy", fields: [createdById], references: [id])
+  shipment            Shipment?
+
+  @@index([status])
+  @@index([customerId])
+  @@index([originLocationId])
+  @@index([destinationLocationId])
+  @@index([createdById])
+  @@index([reviewedById])
+  @@index([createdAt])
+  @@map("courier_requests")
+}
+
+model Shipment {
+  id                    String         @id @default(uuid()) @db.Uuid
+  trackingNumber        String         @unique @map("tracking_number")
+  courierRequestId      String         @unique @map("courier_request_id") @db.Uuid
+  senderName            String         @map("sender_name")
+  senderPhone           String         @map("sender_phone")
+  senderAddress         String         @map("sender_address")
+  recipientName         String         @map("recipient_name")
+  recipientPhone        String         @map("recipient_phone")
+  recipientAddress      String         @map("recipient_address")
+  originLocationId      String         @map("origin_location_id") @db.Uuid
+  destinationLocationId String         @map("destination_location_id") @db.Uuid
+  currentLocationId     String?        @map("current_location_id") @db.Uuid
+  currentStatus         ShipmentStatus @default(PROCESSING) @map("current_status")
+  packageDescription    String         @map("package_description")
+  packageWeight         Decimal?       @map("package_weight") @db.Decimal(10, 2)
+  weightUnit            WeightUnit?    @map("weight_unit")
+  packageCount          Int            @default(1) @map("package_count")
+  estimatedDeliveryDate DateTime?      @map("estimated_delivery_date")
+  internalNotes         String?        @map("internal_notes")
+  assignedToId          String?        @map("assigned_to_id") @db.Uuid
+  createdById           String         @map("created_by_id") @db.Uuid
+  createdAt             DateTime       @default(now()) @map("created_at")
+  updatedAt             DateTime       @updatedAt @map("updated_at")
+
+  // Relations
+  courierRequest      CourierRequest @relation(fields: [courierRequestId], references: [id])
+  originLocation      Location       @relation("ShipmentOrigin", fields: [originLocationId], references: [id])
+  destinationLocation Location       @relation("ShipmentDestination", fields: [destinationLocationId], references: [id])
+  currentLocation     Location?      @relation("ShipmentCurrentLocation", fields: [currentLocationId], references: [id])
+  assignedTo          User?          @relation("ShipmentAssignedTo", fields: [assignedToId], references: [id])
+  createdBy           User           @relation("ShipmentCreatedBy", fields: [createdById], references: [id])
+  trackingUpdates     TrackingUpdate[]
+
+  @@index([currentStatus])
+  @@index([originLocationId])
+  @@index([destinationLocationId])
+  @@index([currentLocationId])
+  @@index([assignedToId])
+  @@index([createdById])
+  @@index([createdAt])
+  @@map("shipments")
+}
+
+model TrackingUpdate {
+  id          String         @id @default(uuid()) @db.Uuid
+  shipmentId  String         @map("shipment_id") @db.Uuid
+  locationId  String?        @map("location_id") @db.Uuid
+  status      ShipmentStatus
+  description String?
+  isPublic    Boolean        @default(true) @map("is_public")
+  createdById String         @map("created_by_id") @db.Uuid
+  timestamp   DateTime
+  createdAt   DateTime       @default(now()) @map("created_at")
+
+  // Relations
+  shipment  Shipment  @relation(fields: [shipmentId], references: [id])
+  location  Location? @relation(fields: [locationId], references: [id])
+  createdBy User      @relation(fields: [createdById], references: [id])
+
+  @@index([shipmentId])
+  @@index([locationId])
+  @@index([status])
+  @@index([createdById])
+  @@index([timestamp])
+  @@map("tracking_updates")
+}
+
+/// Atomic counter for tracking number generation.
+/// Each row represents a year-month bucket (e.g., "2609" for September 2026).
+model TrackingCounter {
+  id        String @id @default(uuid()) @db.Uuid
+  yearMonth String @unique @map("year_month")
+  lastCount Int    @default(0) @map("last_count")
+
+  @@map("tracking_counters")
+}
