@@ -38,7 +38,10 @@ export function validate(schemas: ValidationSchemas) {
       if (!result.success) {
         mergeZodErrors(result.error, errors, 'query');
       } else {
-        req.query = result.data as unknown as Request['query'];
+        for (const key of Object.keys(req.query)) {
+          delete (req.query as Record<string, unknown>)[key];
+        }
+        Object.assign(req.query, result.data);
       }
     }
 
@@ -47,7 +50,10 @@ export function validate(schemas: ValidationSchemas) {
       if (!result.success) {
         mergeZodErrors(result.error, errors, 'params');
       } else {
-        req.params = result.data as unknown as Request['params'];
+        for (const key of Object.keys(req.params)) {
+          delete (req.params as Record<string, unknown>)[key];
+        }
+        Object.assign(req.params, result.data);
       }
     }
 

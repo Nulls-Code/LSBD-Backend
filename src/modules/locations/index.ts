@@ -1,2 +1,3 @@
-// Locations module — will be implemented in Step 5
-export {};
+export { default as locationRoutes } from './locations.routes';
+export * as locationService from './locations.service';
+export * from './locations.schemas';
