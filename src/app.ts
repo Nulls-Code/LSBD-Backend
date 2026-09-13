@@ -9,6 +9,9 @@ import { sendSuccess } from './lib/response';
 import config from './config';
 import { authRoutes } from './modules/auth';
 import { locationRoutes } from './modules/locations';
+import { userRoutes } from './modules/users';
+import { customerRoutes } from './modules/customers';
+import { courierRequestRoutes } from './modules/courierRequests';
 
 const app = express();
 
@@ -58,10 +61,10 @@ app.get('/api/v1/health', (_req, res) => {
 // ========================
 
 app.use('/api/v1/auth', authRoutes);
-// app.use('/api/v1/users', userRoutes);
+app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/locations', locationRoutes);
-// app.use('/api/v1/customers', customerRoutes);
-// app.use('/api/v1/courier-requests', courierRequestRoutes);
+app.use('/api/v1/customers', customerRoutes);
+app.use('/api/v1/courier-requests', courierRequestRoutes);
 // app.use('/api/v1/shipments', shipmentRoutes);
 // app.use('/api/v1/tracking', trackingRoutes);
 

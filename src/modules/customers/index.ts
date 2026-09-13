@@ -1,2 +1,3 @@
-// Customers module — will be implemented alongside Courier Requests
-export {};
+export { default as customerRoutes } from './customers.routes';
+export * as customerService from './customers.service';
+export * from './customers.schemas';

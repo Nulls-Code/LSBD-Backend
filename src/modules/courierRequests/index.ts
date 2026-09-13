@@ -1,2 +1,3 @@
-// Courier Requests module — will be implemented in Step 6
-export {};
+export { default as courierRequestRoutes } from './courierRequests.routes';
+export * as courierRequestService from './courierRequests.service';
+export * from './courierRequests.schemas';

@@ -1,2 +1,3 @@
-// Users module — will be implemented in Step 4
-export {};
+export { default as userRoutes } from './users.routes';
+export * as userService from './users.service';
+export * from './users.schemas';

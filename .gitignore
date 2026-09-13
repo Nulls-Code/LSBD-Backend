@@ -1,6 +1,7 @@
 # Dependencies
 node_modules/
 
+AGENTS.md
 # Build output
 dist/
 

@@ -80,6 +80,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   EMPLOYEE: [
     'location:read',
     'customer:read',
+    'request:create', 'request:read',
     'shipment:read',
     'tracking:create', 'tracking:read',
   ],
