@@ -109,44 +109,37 @@ export async function getUserById(id: string) {
  * Includes self-demotion prevention for administrators.
  */
 export async function updateUser(id: string, data: UpdateUserInput, currentUserId: string) {
-  const user = await prisma.user.findUnique({
-    where: { id },
-  });
-
-  if (!user) {
-    throw new NotFoundError('User');
-  }
-
   // Self-demotion guard: an Admin cannot remove their own Admin role
   if (id === currentUserId && data.role !== undefined && data.role !== 'ADMIN') {
     throw new BadRequestError('Administrators cannot change or demote their own role');
   }
 
-  // Prevent email collisions if updating email
-  if (data.email && data.email !== user.email) {
-    const existing = await prisma.user.findUnique({
-      where: { email: data.email },
+  try {
+    return await prisma.user.update({
+      where: { id },
+      data,
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+      },
     });
-
-    if (existing) {
-      throw new ConflictError('A user with this email already exists');
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError) {
+      if (err.code === 'P2025') {
+        throw new NotFoundError('User');
+      }
+      if (err.code === 'P2002') {
+        throw new ConflictError('A user with this email already exists');
+      }
     }
+    throw err;
   }
-
-  return prisma.user.update({
-    where: { id },
-    data,
-    select: {
-      id: true,
-      email: true,
-      firstName: true,
-      lastName: true,
-      role: true,
-      isActive: true,
-      createdAt: true,
-      updatedAt: true,
-    },
-  });
 }
 
 /**
@@ -154,53 +147,51 @@ export async function updateUser(id: string, data: UpdateUserInput, currentUserI
  * Includes self-deactivation prevention for administrators.
  */
 export async function updateUserStatus(id: string, isActive: boolean, currentUserId: string) {
-  const user = await prisma.user.findUnique({
-    where: { id },
-  });
-
-  if (!user) {
-    throw new NotFoundError('User');
-  }
-
   // Self-deactivation guard: an Admin cannot deactivate themselves
   if (id === currentUserId && !isActive) {
     throw new BadRequestError('Administrators cannot deactivate their own account');
   }
 
-  return prisma.user.update({
-    where: { id },
-    data: { isActive },
-    select: {
-      id: true,
-      email: true,
-      firstName: true,
-      lastName: true,
-      role: true,
-      isActive: true,
-      createdAt: true,
-      updatedAt: true,
-    },
-  });
+  try {
+    return await prisma.user.update({
+      where: { id },
+      data: { isActive },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2025') {
+      throw new NotFoundError('User');
+    }
+    throw err;
+  }
 }
 
 /**
  * Administrative password reset.
  */
 export async function resetUserPassword(id: string, newPassword: string) {
-  const user = await prisma.user.findUnique({
-    where: { id },
-  });
-
-  if (!user) {
-    throw new NotFoundError('User');
-  }
-
   const passwordHash = await bcrypt.hash(newPassword, config.bcrypt.saltRounds);
 
-  await prisma.user.update({
-    where: { id },
-    data: { passwordHash },
-  });
+  try {
+    await prisma.user.update({
+      where: { id },
+      data: { passwordHash },
+    });
 
-  return { message: 'User password reset successfully' };
+    return { message: 'User password reset successfully' };
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2025') {
+      throw new NotFoundError('User');
+    }
+    throw err;
+  }
 }

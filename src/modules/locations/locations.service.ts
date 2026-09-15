@@ -113,28 +113,26 @@ export async function getLocationById(id: string) {
  * Update location details.
  */
 export async function updateLocation(id: string, data: UpdateLocationInput) {
-  const location = await prisma.location.findUnique({
-    where: { id },
-  });
-
-  if (!location) {
-    throw new NotFoundError('Location');
-  }
-
-  if (data.code && data.code !== location.code) {
-    const codeConflict = await prisma.location.findUnique({
-      where: { code: data.code },
+  try {
+    return await prisma.location.update({
+      where: { id },
+      data,
     });
-
-    if (codeConflict) {
-      throw new ConflictError(`A location with code '${data.code}' already exists`);
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError) {
+      if (err.code === 'P2025') {
+        throw new NotFoundError('Location');
+      }
+      if (err.code === 'P2002') {
+        throw new ConflictError(
+          data.code
+            ? `A location with code '${data.code}' already exists`
+            : 'A location with this code already exists',
+        );
+      }
     }
+    throw err;
   }
-
-  return prisma.location.update({
-    where: { id },
-    data,
-  });
 }
 
 /**
@@ -142,14 +140,6 @@ export async function updateLocation(id: string, data: UpdateLocationInput) {
  * Prevents deactivation if active shipments are currently stationed at the location.
  */
 export async function updateLocationStatus(id: string, isActive: boolean) {
-  const location = await prisma.location.findUnique({
-    where: { id },
-  });
-
-  if (!location) {
-    throw new NotFoundError('Location');
-  }
-
   if (!isActive) {
     const activeShipmentsCount = await prisma.shipment.count({
       where: {
@@ -167,8 +157,15 @@ export async function updateLocationStatus(id: string, isActive: boolean) {
     }
   }
 
-  return prisma.location.update({
-    where: { id },
-    data: { isActive },
-  });
+  try {
+    return await prisma.location.update({
+      where: { id },
+      data: { isActive },
+    });
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2025') {
+      throw new NotFoundError('Location');
+    }
+    throw err;
+  }
 }

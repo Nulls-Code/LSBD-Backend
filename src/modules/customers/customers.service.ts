@@ -139,29 +139,22 @@ export async function createCustomer(data: CreateCustomerInput) {
  * Update an existing customer's profile.
  */
 export async function updateCustomer(id: string, data: UpdateCustomerInput) {
-  const customer = await prisma.customer.findUnique({
-    where: { id },
-  });
-
-  if (!customer) {
-    throw new NotFoundError('Customer');
-  }
-
-  // Check email uniqueness if changing email
-  if (data.email && data.email !== customer.email) {
-    const existing = await prisma.customer.findUnique({
-      where: { email: data.email },
+  try {
+    return await prisma.customer.update({
+      where: { id },
+      data,
     });
-
-    if (existing) {
-      throw new ConflictError('A customer with this email already exists');
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError) {
+      if (err.code === 'P2025') {
+        throw new NotFoundError('Customer');
+      }
+      if (err.code === 'P2002') {
+        throw new ConflictError('A customer with this email already exists');
+      }
     }
+    throw err;
   }
-
-  return prisma.customer.update({
-    where: { id },
-    data,
-  });
 }
 
 /**

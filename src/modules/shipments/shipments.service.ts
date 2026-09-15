@@ -167,6 +167,7 @@ export async function getShipmentById(id: string) {
       },
       trackingUpdates: {
         orderBy: { timestamp: 'desc' },
+        take: 10,
         include: {
           location: {
             select: { id: true, name: true, code: true, city: true, country: true },
@@ -187,21 +188,20 @@ export async function getShipmentById(id: string) {
 }
 
 export async function updateShipment(id: string, data: UpdateShipmentInput) {
-  const shipment = await prisma.shipment.findUnique({
-    where: { id },
-  });
-
-  if (!shipment) {
-    throw new NotFoundError('Shipment');
-  }
-
-  return prisma.shipment.update({
-    where: { id },
-    data,
-    include: {
-      assignedTo: {
-        select: { id: true, firstName: true, lastName: true },
+  try {
+    return await prisma.shipment.update({
+      where: { id },
+      data,
+      include: {
+        assignedTo: {
+          select: { id: true, firstName: true, lastName: true },
+        },
       },
-    },
-  });
+    });
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2025') {
+      throw new NotFoundError('Shipment');
+    }
+    throw err;
+  }
 }

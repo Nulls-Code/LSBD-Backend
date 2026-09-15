@@ -144,6 +144,7 @@ model CourierRequest {
   shipment            Shipment?
 
   @@index([status])
+  @@index([status, createdAt(sort: Desc)])
   @@index([customerId])
   @@index([originLocationId])
   @@index([destinationLocationId])
@@ -188,6 +189,7 @@ model Shipment {
   trackingUpdates     TrackingUpdate[]
 
   @@index([currentStatus])
+  @@index([currentStatus, createdAt(sort: Desc)])
   @@index([originLocationId])
   @@index([destinationLocationId])
   @@index([currentLocationId])
@@ -214,6 +216,8 @@ model TrackingUpdate {
   createdBy User      @relation(fields: [createdById], references: [id])
 
   @@index([shipmentId])
+  @@index([shipmentId, timestamp(sort: Desc)])
+  @@index([shipmentId, isPublic, timestamp(sort: Desc)])
   @@index([locationId])
   @@index([status])
   @@index([createdById])
@@ -244,5 +248,6 @@ model RefreshToken {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([userId, expiresAt])
   @@map("refresh_tokens")
 }
