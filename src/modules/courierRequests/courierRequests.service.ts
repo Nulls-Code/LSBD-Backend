@@ -5,6 +5,7 @@ import {
   NotFoundError,
 } from '../../lib/errors';
 import { upsertCustomerTx } from '../customers/customers.service';
+import { createShipmentTx } from '../shipments/shipments.service';
 import {
   CreateCourierRequestInput,
   QueryCourierRequestsInput,
@@ -227,6 +228,7 @@ export async function reviewCourierRequest(
 ) {
   const request = await prisma.courierRequest.findUnique({
     where: { id },
+    include: { originLocation: true, destinationLocation: true },
   });
 
   if (!request) {
@@ -241,15 +243,23 @@ export async function reviewCourierRequest(
 
   const newStatus = data.action === 'APPROVE' ? 'APPROVED' : 'REJECTED';
 
-  return prisma.courierRequest.update({
-    where: { id },
-    data: {
-      status: newStatus,
-      reviewedById: reviewerId,
-      reviewedAt: new Date(),
-      reviewNotes: data.reviewNotes,
-    },
-    select: courierRequestListSelect,
+  return prisma.$transaction(async (tx) => {
+    const updatedRequest = await tx.courierRequest.update({
+      where: { id },
+      data: {
+        status: newStatus,
+        reviewedById: reviewerId,
+        reviewedAt: new Date(),
+        reviewNotes: data.reviewNotes,
+      },
+      select: courierRequestListSelect,
+    });
+
+    if (newStatus === 'APPROVED') {
+      await createShipmentTx(tx, request, reviewerId);
+    }
+
+    return updatedRequest;
   });
 }
 

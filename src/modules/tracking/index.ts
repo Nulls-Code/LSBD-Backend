@@ -1,2 +1,4 @@
-// Tracking module — will be implemented in Step 7-8
-export {};
+export { default as trackingRoutes } from './tracking.routes';
+export { default as publicTrackingRoutes } from './publicTracking.routes';
+export * as trackingService from './tracking.service';
+export * from './tracking.schemas';

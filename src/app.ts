@@ -12,17 +12,13 @@ import { locationRoutes } from './modules/locations';
 import { userRoutes } from './modules/users';
 import { customerRoutes } from './modules/customers';
 import { courierRequestRoutes } from './modules/courierRequests';
+import { shipmentRoutes } from './modules/shipments';
+import { publicTrackingRoutes } from './modules/tracking';
 
 const app = express();
 
-// ========================
-// Global Middleware
-// ========================
-
-// Security headers
 app.use(helmet());
 
-// CORS
 app.use(cors({
   origin: config.cors.origin,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
@@ -30,22 +26,13 @@ app.use(cors({
   credentials: true,
 }));
 
-// Body parsing
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Cookie parsing
 app.use(cookieParser());
 
-// Rate limiting
 app.use('/api', apiRateLimiter);
-
-// Request logging
 app.use(requestLogger);
-
-// ========================
-// Health Check
-// ========================
 
 app.get('/api/v1/health', (_req, res) => {
   sendSuccess(res, {
@@ -56,21 +43,13 @@ app.get('/api/v1/health', (_req, res) => {
   });
 });
 
-// ========================
-// API Routes
-// ========================
-
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/locations', locationRoutes);
 app.use('/api/v1/customers', customerRoutes);
 app.use('/api/v1/courier-requests', courierRequestRoutes);
-// app.use('/api/v1/shipments', shipmentRoutes);
-// app.use('/api/v1/tracking', trackingRoutes);
-
-// ========================
-// 404 Handler
-// ========================
+app.use('/api/v1/shipments', shipmentRoutes);
+app.use('/api/v1/tracking', publicTrackingRoutes);
 
 app.use((_req, res) => {
   res.status(404).json({
@@ -81,10 +60,6 @@ app.use((_req, res) => {
     },
   });
 });
-
-// ========================
-// Error Handler (must be last)
-// ========================
 
 app.use(errorHandler);
 

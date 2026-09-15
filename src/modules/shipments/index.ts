@@ -1,2 +1,2 @@
-// Shipments module — will be implemented in Step 7
-export {};
+export * from './shipments.routes';
+export * from './shipments.service';
