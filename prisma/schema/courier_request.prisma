@@ -1,0 +1,44 @@
+model CourierRequest {
+  id                    String               @id @default(uuid()) @db.Uuid
+  customerId            String               @map("customer_id") @db.Uuid
+  senderName            String               @map("sender_name")
+  senderPhone           String               @map("sender_phone")
+  senderEmail           String?              @map("sender_email")
+  senderAddress         String               @map("sender_address")
+  recipientName         String               @map("recipient_name")
+  recipientPhone        String               @map("recipient_phone")
+  recipientEmail        String?              @map("recipient_email")
+  recipientAddress      String               @map("recipient_address")
+  originLocationId      String               @map("origin_location_id") @db.Uuid
+  destinationLocationId String               @map("destination_location_id") @db.Uuid
+  packageDescription    String               @map("package_description")
+  packageWeight         Decimal?             @map("package_weight") @db.Decimal(10, 2)
+  weightUnit            WeightUnit?          @map("weight_unit")
+  packageCount          Int                  @default(1) @map("package_count")
+  requestNotes          String?              @map("request_notes")
+  status                CourierRequestStatus @default(PENDING)
+  reviewedById          String?              @map("reviewed_by_id") @db.Uuid
+  reviewNotes           String?              @map("review_notes")
+  reviewedAt            DateTime?            @map("reviewed_at")
+  createdById           String?              @map("created_by_id") @db.Uuid
+  createdAt             DateTime             @default(now()) @map("created_at")
+  updatedAt             DateTime             @updatedAt @map("updated_at")
+
+  // Relations
+  customer            Customer @relation(fields: [customerId], references: [id])
+  originLocation      Location @relation("RequestOrigin", fields: [originLocationId], references: [id])
+  destinationLocation Location @relation("RequestDestination", fields: [destinationLocationId], references: [id])
+  reviewedBy          User?    @relation("RequestReviewedBy", fields: [reviewedById], references: [id])
+  createdBy           User?    @relation("RequestCreatedBy", fields: [createdById], references: [id])
+  shipment            Shipment?
+
+  @@index([status])
+  @@index([status, createdAt(sort: Desc)])
+  @@index([customerId])
+  @@index([originLocationId])
+  @@index([destinationLocationId])
+  @@index([createdById])
+  @@index([reviewedById])
+  @@index([createdAt])
+  @@map("courier_requests")
+}

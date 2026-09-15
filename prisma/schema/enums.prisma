@@ -1,0 +1,29 @@
+enum UserRole {
+  ADMIN
+  MANAGER
+  EMPLOYEE
+}
+
+enum CourierRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum ShipmentStatus {
+  PROCESSING
+  IN_TRANSIT
+  ARRIVED_AT_HUB
+  OUT_FOR_DELIVERY
+  DELIVERED
+  FAILED_DELIVERY
+  ON_HOLD
+  CANCELLED
+  RETURNED
+}
+
+enum WeightUnit {
+  KG
+  LB
+}

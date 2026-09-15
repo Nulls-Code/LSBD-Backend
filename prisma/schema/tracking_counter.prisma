@@ -1,0 +1,9 @@
+/// Atomic counter for tracking number generation.
+/// Each row represents a year-month bucket (e.g., "2609" for September 2026).
+model TrackingCounter {
+  id        String @id @default(uuid()) @db.Uuid
+  yearMonth String @unique @map("year_month")
+  lastCount Int    @default(0) @map("last_count")
+
+  @@map("tracking_counters")
+}
