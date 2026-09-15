@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { ShipmentStatus } from '@prisma/client';
+import { stripHtml } from '../../lib/sanitize';
 
 const querySchema = z.object({
   page: z.coerce.number().min(1).optional().default(1),
@@ -22,7 +23,8 @@ export type QueryShipmentsInput = z.infer<typeof querySchema>;
 const updateBodySchema = z.object({
   assignedToId: z.string().uuid().nullable().optional(),
   estimatedDeliveryDate: z.coerce.date().nullable().optional(),
-  internalNotes: z.string().nullable().optional(),
+  // SEC-13: strip HTML from internal notes to prevent stored XSS
+  internalNotes: z.string().trim().transform(stripHtml).nullable().optional(),
 }).refine((data) => Object.keys(data).length > 0, {
   message: 'At least one field must be provided for update',
 });

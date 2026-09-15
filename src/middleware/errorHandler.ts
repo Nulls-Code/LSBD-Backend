@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { Prisma } from '@prisma/client';
 import { AppError, ValidationError } from '../lib/errors';
 import { sendError } from '../lib/response';
 import config from '../config';
@@ -37,16 +38,15 @@ export function errorHandler(
   }
 
   // Prisma known request errors (e.g., unique constraint violations)
-  if (err.constructor.name === 'PrismaClientKnownRequestError') {
-    const prismaError = err as Error & { code: string; meta?: { target?: string[] } };
-
-    if (prismaError.code === 'P2002') {
-      const target = prismaError.meta?.target?.join(', ') || 'field';
+  // SEC-12: Use instanceof instead of constructor.name string — type-safe and upgrade-proof
+  if (err instanceof Prisma.PrismaClientKnownRequestError) {
+    if (err.code === 'P2002') {
+      const target = (err.meta?.target as string[] | undefined)?.join(', ') || 'field';
       sendError(res, 409, 'CONFLICT', `A record with this ${target} already exists`);
       return;
     }
 
-    if (prismaError.code === 'P2025') {
+    if (err.code === 'P2025') {
       sendError(res, 404, 'NOT_FOUND', 'The requested record was not found');
       return;
     }

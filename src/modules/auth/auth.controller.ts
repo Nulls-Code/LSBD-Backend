@@ -2,24 +2,42 @@ import { Request, Response, NextFunction } from 'express';
 import * as authService from './auth.service';
 import { sendSuccess, sendCreated } from '../../lib/response';
 import { UnauthorizedError } from '../../lib/errors';
+import config from '../../config';
 
 /**
- * Cookie options as specified for browser persistence.
+ * Cookie options derived from the current environment.
+ *
+ * SEC-02: `secure` must be true in production so tokens are only sent over HTTPS.
+ * `sameSite: 'strict'` in production prevents CSRF; 'none' is needed in dev
+ * for cross-origin requests from the local frontend dev server.
+ *
+ * IMPORTANT: `sameSite: 'none'` requires `secure: true` in Chrome 80+.
+ * The dev exception is only safe because `secure: false` means cookies are
+ * confined to http://localhost and are never transmitted over the network.
  */
+const isProd = config.isProduction();
+
 export const COOKIE_OPTIONS = {
   accessToken: {
     httpOnly: true,
-    secure: false,
-    sameSite: 'none' as const,
-    maxAge: 1000 * 60 * 60 * 24, // 24 hours / 1 day
+    secure: isProd,
+    sameSite: (isProd ? 'strict' : 'none') as 'strict' | 'none',
+    maxAge: 1000 * 60 * 60 * 24, // 24 hours
   },
   refreshToken: {
     httpOnly: true,
-    secure: false,
-    sameSite: 'none' as const,
+    secure: isProd,
+    sameSite: (isProd ? 'strict' : 'none') as 'strict' | 'none',
     maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
   },
-};
+} as const;
+
+// Reuse the same flags for clearing so browsers honour the directive
+const CLEAR_OPTIONS = {
+  httpOnly: true,
+  secure: isProd,
+  sameSite: (isProd ? 'strict' : 'none') as 'strict' | 'none',
+} as const;
 
 /**
  * Set authentication cookies on the response.
@@ -33,16 +51,8 @@ export function setAuthCookies(res: Response, accessToken: string, refreshToken:
  * Clear authentication cookies on logout.
  */
 export function clearAuthCookies(res: Response): void {
-  res.clearCookie('accessToken', {
-    httpOnly: true,
-    secure: false,
-    sameSite: 'none',
-  });
-  res.clearCookie('refreshToken', {
-    httpOnly: true,
-    secure: false,
-    sameSite: 'none',
-  });
+  res.clearCookie('accessToken', CLEAR_OPTIONS);
+  res.clearCookie('refreshToken', CLEAR_OPTIONS);
 }
 
 /**
@@ -89,10 +99,17 @@ export async function refreshToken(req: Request, res: Response, next: NextFuncti
 }
 
 /**
- * Log out user by clearing auth cookies.
+ * Log out user.
+ *
+ * SEC-03: Revokes the refresh token server-side before clearing cookies.
+ * This ensures that even a stolen refresh token cannot be used after logout.
+ * The refresh token is read from the httpOnly cookie first, then the request body
+ * as a fallback (for API clients that don't use cookies).
  */
-export async function logoutUser(_req: Request, res: Response, next: NextFunction) {
+export async function logoutUser(req: Request, res: Response, next: NextFunction) {
   try {
+    const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
+    await authService.logout(refreshToken);
     clearAuthCookies(res);
     sendSuccess(res, null, 200, 'Logged out successfully');
   } catch (error) {

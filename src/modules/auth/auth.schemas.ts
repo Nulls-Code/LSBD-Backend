@@ -1,4 +1,5 @@
 import { z } from 'zod/v4';
+import { stripHtml } from '../../lib/sanitize';
 
 /**
  * Validation schemas for the auth module.
@@ -16,20 +17,23 @@ export const registerSchema = z.object({
     .string()
     .min(8, 'Password must be at least 8 characters')
     .max(128, 'Password must not exceed 128 characters')
+    // SEC-08: requires uppercase, lowercase, digit, AND special character
     .regex(
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-      'Password must contain at least one uppercase letter, one lowercase letter, and one number',
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()\-_=+\[\]{};':"\\|,.<>\/?])/,
+      'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character',
     ),
   firstName: z
     .string()
     .min(1, 'First name is required')
     .max(100, 'First name must not exceed 100 characters')
-    .trim(),
+    .trim()
+    .transform(stripHtml),
   lastName: z
     .string()
     .min(1, 'Last name is required')
     .max(100, 'Last name must not exceed 100 characters')
-    .trim(),
+    .trim()
+    .transform(stripHtml),
   role: z.enum(['ADMIN', 'MANAGER', 'EMPLOYEE']).optional().default('EMPLOYEE'),
 });
 
@@ -60,9 +64,10 @@ export const changePasswordSchema = z.object({
     .string()
     .min(8, 'New password must be at least 8 characters')
     .max(128, 'New password must not exceed 128 characters')
+    // SEC-08: requires uppercase, lowercase, digit, AND special character
     .regex(
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-      'New password must contain at least one uppercase letter, one lowercase letter, and one number',
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()\-_=+\[\]{};':"\\|,.<>\/?])/,
+      'New password must contain at least one uppercase letter, one lowercase letter, one number, and one special character',
     ),
 });
 

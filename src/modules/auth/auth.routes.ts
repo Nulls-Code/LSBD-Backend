@@ -20,8 +20,10 @@ router.post(
   authController.loginUser,
 );
 
+// SEC-06: authRateLimiter prevents unlimited refresh token probing
 router.post(
   '/refresh',
+  authRateLimiter,
   validate({ body: refreshTokenSchema }),
   authController.refreshToken,
 );
@@ -45,9 +47,11 @@ router.get(
   authController.getProfile,
 );
 
+// SEC-07: authRateLimiter prevents brute-forcing `currentPassword` with a stolen token
 router.post(
   '/change-password',
   authenticate,
+  authRateLimiter,
   validate({ body: changePasswordSchema }),
   authController.changePassword,
 );

@@ -1,4 +1,5 @@
 import { z } from 'zod/v4';
+import { stripHtml } from '../../lib/sanitize';
 
 /**
  * Validation schemas for the courier requests module.
@@ -14,7 +15,8 @@ export const createCourierRequestSchema = z.object({
     .string()
     .min(1, 'Sender name is required')
     .max(200, 'Sender name must not exceed 200 characters')
-    .trim(),
+    .trim()
+    .transform(stripHtml),
   senderPhone: z
     .string()
     .min(1, 'Sender phone is required')
@@ -28,11 +30,13 @@ export const createCourierRequestSchema = z.object({
     .string()
     .min(1, 'Sender address is required')
     .max(500, 'Sender address must not exceed 500 characters')
-    .trim(),
+    .trim()
+    .transform(stripHtml),
   senderCompany: z
     .string()
     .max(200, 'Company name must not exceed 200 characters')
     .trim()
+    .transform(stripHtml)
     .optional(),
 
   // Recipient information
@@ -40,7 +44,8 @@ export const createCourierRequestSchema = z.object({
     .string()
     .min(1, 'Recipient name is required')
     .max(200, 'Recipient name must not exceed 200 characters')
-    .trim(),
+    .trim()
+    .transform(stripHtml),
   recipientPhone: z
     .string()
     .min(1, 'Recipient phone is required')
@@ -55,7 +60,8 @@ export const createCourierRequestSchema = z.object({
     .string()
     .min(1, 'Recipient address is required')
     .max(500, 'Recipient address must not exceed 500 characters')
-    .trim(),
+    .trim()
+    .transform(stripHtml),
 
   // Routing
   originLocationId: z.string().uuid('Invalid origin location ID'),
@@ -66,7 +72,8 @@ export const createCourierRequestSchema = z.object({
     .string()
     .min(1, 'Package description is required')
     .max(1000, 'Package description must not exceed 1000 characters')
-    .trim(),
+    .trim()
+    .transform(stripHtml),
   packageWeight: z
     .number()
     .positive('Package weight must be positive')
@@ -81,6 +88,7 @@ export const createCourierRequestSchema = z.object({
     .string()
     .max(1000, 'Request notes must not exceed 1000 characters')
     .trim()
+    .transform(stripHtml)
     .optional(),
 
   // Optional explicit customer link
@@ -111,6 +119,7 @@ export const reviewCourierRequestSchema = z.object({
     .string()
     .max(500, 'Review notes must not exceed 500 characters')
     .trim()
+    .transform(stripHtml)
     .optional(),
 });
 
@@ -119,6 +128,7 @@ export const cancelCourierRequestSchema = z.object({
     .string()
     .max(500, 'Cancellation reason must not exceed 500 characters')
     .trim()
+    .transform(stripHtml)
     .optional(),
 });
 

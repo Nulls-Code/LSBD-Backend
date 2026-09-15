@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { authenticate, authenticateOptional } from '../../middleware/authenticate';
 import { authorize } from '../../middleware/authorize';
 import { validate } from '../../middleware/validate';
+import { intakeRateLimiter } from '../../middleware/rateLimiter';
 import * as courierRequestController from './courierRequests.controller';
 import {
   requestIdParamSchema,
@@ -14,8 +15,10 @@ import {
 const router = Router();
 
 // Public / optionally-authenticated intake endpoint
+// intakeRateLimiter throttles anonymous callers to prevent DB flooding (SEC-01)
 router.post(
   '/',
+  intakeRateLimiter,
   authenticateOptional,
   validate({ body: createCourierRequestSchema }),
   courierRequestController.createCourierRequest,

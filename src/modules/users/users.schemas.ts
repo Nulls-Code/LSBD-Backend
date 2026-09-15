@@ -1,4 +1,5 @@
 import { z } from 'zod/v4';
+import { stripHtml } from '../../lib/sanitize';
 
 /**
  * Validation schemas for the users module.
@@ -29,12 +30,14 @@ export const updateUserSchema = z.object({
     .min(1, 'First name must not be empty')
     .max(100, 'First name must not exceed 100 characters')
     .trim()
+    .transform(stripHtml)
     .optional(),
   lastName: z
     .string()
     .min(1, 'Last name must not be empty')
     .max(100, 'Last name must not exceed 100 characters')
     .trim()
+    .transform(stripHtml)
     .optional(),
   email: z
     .string()
@@ -53,9 +56,10 @@ export const resetUserPasswordSchema = z.object({
     .string()
     .min(8, 'Password must be at least 8 characters')
     .max(128, 'Password must not exceed 128 characters')
+    // SEC-08: consistent with all other password-setting paths
     .regex(
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-      'Password must contain at least one uppercase letter, one lowercase letter, and one number',
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()\-_=+\[\]{};':"\\|,.<>\/?])/,
+      'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character',
     ),
 });
 

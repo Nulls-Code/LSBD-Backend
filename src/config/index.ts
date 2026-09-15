@@ -29,7 +29,10 @@ const config = {
   },
 
   cors: {
-    origin: process.env.CORS_ORIGIN || 'http://localhost:3001',
+    // SEC-09: comma-separated to support multiple origins (e.g. staging + prod frontend)
+    origin: (process.env.CORS_ORIGIN || 'http://localhost:3001')
+      .split(',')
+      .map((o) => o.trim()),
   },
 
   rateLimit: {
@@ -69,12 +72,15 @@ export function validateConfig(): void {
     throw new Error(`Missing required environment variables: ${keys}`);
   }
 
-  if (config.jwt.secret.length < 32 && config.isProduction()) {
-    throw new Error('JWT_SECRET must be at least 32 characters in production');
+  // SEC-11: Enforce minimum secret length in ALL non-development environments,
+  // not just production. A dev .env accidentally used in staging would silently
+  // issue weak tokens without this check.
+  if (config.jwt.secret.length < 32 && !config.isDevelopment()) {
+    throw new Error('JWT_SECRET must be at least 32 characters in non-development environments');
   }
 
-  if (config.jwt.refreshSecret.length < 32 && config.isProduction()) {
-    throw new Error('JWT_REFRESH_SECRET must be at least 32 characters in production');
+  if (config.jwt.refreshSecret.length < 32 && !config.isDevelopment()) {
+    throw new Error('JWT_REFRESH_SECRET must be at least 32 characters in non-development environments');
   }
 }
 

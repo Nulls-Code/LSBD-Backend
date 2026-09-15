@@ -1,4 +1,5 @@
 import { z } from 'zod/v4';
+import { stripHtml } from '../../lib/sanitize';
 
 /**
  * Validation schemas for the customers module.
@@ -19,7 +20,8 @@ export const createCustomerSchema = z.object({
     .string()
     .min(1, 'Name is required')
     .max(200, 'Name must not exceed 200 characters')
-    .trim(),
+    .trim()
+    .transform(stripHtml),
   email: z
     .string()
     .email('Invalid email address')
@@ -33,6 +35,7 @@ export const createCustomerSchema = z.object({
     .string()
     .max(200, 'Company name must not exceed 200 characters')
     .trim()
+    .transform(stripHtml)
     .optional(),
 });
 
@@ -42,6 +45,7 @@ export const updateCustomerSchema = z.object({
     .min(1, 'Name must not be empty')
     .max(200, 'Name must not exceed 200 characters')
     .trim()
+    .transform(stripHtml)
     .optional(),
   email: z
     .string()
@@ -58,6 +62,7 @@ export const updateCustomerSchema = z.object({
     .string()
     .max(200, 'Company name must not exceed 200 characters')
     .trim()
+    .transform(stripHtml)
     .nullish(),
 });
 

@@ -1,4 +1,5 @@
 import { z } from 'zod/v4';
+import { stripHtml } from '../../lib/sanitize';
 
 /**
  * Validation schemas for the locations module.
@@ -9,7 +10,8 @@ export const createLocationSchema = z.object({
     .string()
     .min(1, 'Name is required')
     .max(100, 'Name must not exceed 100 characters')
-    .trim(),
+    .trim()
+    .transform(stripHtml),
   code: z
     .string()
     .min(2, 'Code must be at least 2 characters')
@@ -23,16 +25,19 @@ export const createLocationSchema = z.object({
     .string()
     .min(1, 'City is required')
     .max(100, 'City must not exceed 100 characters')
-    .trim(),
+    .trim()
+    .transform(stripHtml),
   country: z
     .string()
     .min(1, 'Country is required')
     .max(100, 'Country must not exceed 100 characters')
-    .trim(),
+    .trim()
+    .transform(stripHtml),
   address: z
     .string()
     .max(255, 'Address must not exceed 255 characters')
     .trim()
+    .transform(stripHtml)
     .optional(),
 });
 
@@ -42,6 +47,7 @@ export const updateLocationSchema = z.object({
     .min(1, 'Name must not be empty')
     .max(100, 'Name must not exceed 100 characters')
     .trim()
+    .transform(stripHtml)
     .optional(),
   code: z
     .string()
@@ -58,17 +64,20 @@ export const updateLocationSchema = z.object({
     .min(1, 'City must not be empty')
     .max(100, 'City must not exceed 100 characters')
     .trim()
+    .transform(stripHtml)
     .optional(),
   country: z
     .string()
     .min(1, 'Country must not be empty')
     .max(100, 'Country must not exceed 100 characters')
     .trim()
+    .transform(stripHtml)
     .optional(),
   address: z
     .string()
     .max(255, 'Address must not exceed 255 characters')
     .trim()
+    .transform(stripHtml)
     .nullable()
     .optional(),
 });
