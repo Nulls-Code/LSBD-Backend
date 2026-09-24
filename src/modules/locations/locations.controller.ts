@@ -56,3 +56,18 @@ export async function updateLocationStatus(req: Request, res: Response, next: Ne
     next(error);
   }
 }
+
+/**
+ * Public endpoint: returns only active locations (id, name, code, city, country).
+ * No authentication required — used by the public quote-request form.
+ */
+export async function getPublicLocations(_req: Request, res: Response, next: NextFunction) {
+  try {
+    const result = await locationService.getLocations({ page: 1, limit: 100, isActive: true });
+    const slim = result.locations.map((l) => ({ id: l.id, name: l.name, code: l.code, city: l.city, country: l.country }));
+    sendSuccess(res, slim, 200, 'Active locations retrieved successfully');
+  } catch (error) {
+    next(error);
+  }
+}
+

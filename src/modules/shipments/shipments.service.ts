@@ -43,11 +43,26 @@ export async function generateTrackingNumberTx(tx: Prisma.TransactionClient, yea
     throw new Error('Failed to generate tracking number');
   }
 
-  const count = result[0].last_count;
-  // Pad with zeroes up to 5 digits, but allow it to exceed if it goes over
-  const paddedCount = count.toString().padStart(5, '0');
-  
-  return `LSBD-${yearMonth}-${paddedCount}`;
+  let count = result[0].last_count;
+  let paddedCount = count.toString().padStart(5, '0');
+  let trackingNumber = `LSBD-${yearMonth}-${paddedCount}`;
+
+  // Collision guard: skip any tracking numbers that were pre-seeded or already exist
+  let existing = await tx.shipment.findUnique({ where: { trackingNumber } });
+  while (existing) {
+    const updated = await tx.$queryRaw<{ last_count: number }[]>`
+      UPDATE tracking_counters
+      SET last_count = tracking_counters.last_count + 1
+      WHERE year_month = ${yearMonth}
+      RETURNING last_count;
+    `;
+    count = updated[0].last_count;
+    paddedCount = count.toString().padStart(5, '0');
+    trackingNumber = `LSBD-${yearMonth}-${paddedCount}`;
+    existing = await tx.shipment.findUnique({ where: { trackingNumber } });
+  }
+
+  return trackingNumber;
 }
 
 /**

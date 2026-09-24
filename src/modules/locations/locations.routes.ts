@@ -1,4 +1,4 @@
-import { Router } from 'express';
+﻿import { Router } from 'express';
 import { authenticate } from '../../middleware/authenticate';
 import { authorize } from '../../middleware/authorize';
 import { validate } from '../../middleware/validate';
@@ -13,7 +13,10 @@ import {
 
 const router = Router();
 
-// All location routes require authentication
+// Public endpoint — no authentication required (used by the quote-request form)
+router.get('/public', locationController.getPublicLocations);
+
+// All remaining location routes require authentication
 router.use(authenticate);
 
 router.post(

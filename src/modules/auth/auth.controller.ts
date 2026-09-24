@@ -8,12 +8,8 @@ import config from '../../config';
  * Cookie options derived from the current environment.
  *
  * SEC-02: `secure` must be true in production so tokens are only sent over HTTPS.
- * `sameSite: 'strict'` in production prevents CSRF; 'none' is needed in dev
- * for cross-origin requests from the local frontend dev server.
- *
- * IMPORTANT: `sameSite: 'none'` requires `secure: true` in Chrome 80+.
- * The dev exception is only safe because `secure: false` means cookies are
- * confined to http://localhost and are never transmitted over the network.
+ * `sameSite: 'strict'` in production prevents CSRF; 'lax' is used in dev
+ * so cookies are sent on same-site navigations from the local frontend.
  */
 const isProd = config.isProduction();
 
@@ -21,13 +17,13 @@ export const COOKIE_OPTIONS = {
   accessToken: {
     httpOnly: true,
     secure: isProd,
-    sameSite: (isProd ? 'strict' : 'none') as 'strict' | 'none',
+    sameSite: (isProd ? 'strict' : 'lax') as 'strict' | 'lax',
     maxAge: 1000 * 60 * 60 * 24, // 24 hours
   },
   refreshToken: {
     httpOnly: true,
     secure: isProd,
-    sameSite: (isProd ? 'strict' : 'none') as 'strict' | 'none',
+    sameSite: (isProd ? 'strict' : 'lax') as 'strict' | 'lax',
     maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
   },
 } as const;
@@ -36,7 +32,7 @@ export const COOKIE_OPTIONS = {
 const CLEAR_OPTIONS = {
   httpOnly: true,
   secure: isProd,
-  sameSite: (isProd ? 'strict' : 'none') as 'strict' | 'none',
+  sameSite: (isProd ? 'strict' : 'lax') as 'strict' | 'lax',
 } as const;
 
 /**

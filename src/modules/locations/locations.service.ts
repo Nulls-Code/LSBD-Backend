@@ -68,6 +68,7 @@ export async function getLocations(query: QueryLocationsInput) {
       skip,
       take: limit,
       orderBy: { name: 'asc' },
+      include: { _count: { select: { currentShipments: true } } },
     }),
     prisma.location.count({ where }),
   ]);

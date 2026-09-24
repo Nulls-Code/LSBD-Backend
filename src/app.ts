@@ -17,6 +17,9 @@ import { publicTrackingRoutes } from './modules/tracking';
 
 const app = express();
 
+// Trust reverse proxy (e.g. Nginx, Cloudflare, Render, Railway) for accurate IP resolution
+app.set('trust proxy', 1);
+
 app.use(helmet());
 
 app.use(cors({

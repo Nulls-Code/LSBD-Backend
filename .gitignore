@@ -1,6 +1,7 @@
 # Dependencies
 node_modules/
 
+LSBD_Frontend_Design_Specification.tex
 AGENTS.md
 # Build output
 dist/

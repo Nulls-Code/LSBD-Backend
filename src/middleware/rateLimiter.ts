@@ -11,10 +11,12 @@ export const apiRateLimiter = rateLimit({
   max: config.rateLimit.maxRequests,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: () => config.isDevelopment(),
   handler: (_req, res) => {
     sendError(res, 429, 'TOO_MANY_REQUESTS', 'Too many requests, please try again later.');
   },
 });
+
 
 /**
  * Strict rate limiter for authentication endpoints (e.g. /login).
