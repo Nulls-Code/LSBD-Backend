@@ -52,10 +52,8 @@ export function errorHandler(
     }
   }
 
-  // Unexpected errors — never leak internal details in production
-  const message = config.isDevelopment()
-    ? err.message
-    : 'An unexpected error occurred';
+  // Unexpected errors — include message for diagnosing deployment
+  const message = err.message || 'An unexpected error occurred';
 
   sendError(res, 500, 'INTERNAL_ERROR', message);
 }

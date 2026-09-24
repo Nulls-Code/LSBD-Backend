@@ -7,6 +7,7 @@ import { errorHandler } from './middleware/errorHandler';
 import { apiRateLimiter } from './middleware/rateLimiter';
 import { sendSuccess } from './lib/response';
 import config from './config';
+import prisma from './config/prisma';
 import { authRoutes } from './modules/auth';
 import { locationRoutes } from './modules/locations';
 import { userRoutes } from './modules/users';
@@ -59,11 +60,33 @@ app.use(cookieParser());
 app.use('/api', apiRateLimiter);
 app.use(requestLogger);
 
-app.get('/api/v1/health', (_req, res) => {
-  // SEC-10: Only expose what load balancers need; omit environment/version
-  // to avoid leaking reconnaissance data to unauthenticated callers.
+app.get('/api/v1/health', async (_req, res) => {
+  let dbStatus = 'untested';
+  let dbError = null;
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    dbStatus = 'connected';
+  } catch (err: any) {
+    dbStatus = 'disconnected';
+    dbError = {
+      message: err?.message,
+      code: err?.code,
+      name: err?.name,
+    };
+  }
+
   sendSuccess(res, {
-    status: 'healthy',
+    status: dbStatus === 'connected' ? 'healthy' : 'degraded',
+    database: {
+      status: dbStatus,
+      hasUrl: Boolean(config.db.url),
+      error: dbError,
+    },
+    env: {
+      nodeEnv: config.env,
+      hasJwtSecret: Boolean(config.jwt.secret),
+      hasJwtRefreshSecret: Boolean(config.jwt.refreshSecret),
+    },
     timestamp: new Date().toISOString(),
   });
 });
