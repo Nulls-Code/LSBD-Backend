@@ -17,13 +17,13 @@ export const COOKIE_OPTIONS = {
   accessToken: {
     httpOnly: true,
     secure: isProd,
-    sameSite: (isProd ? 'strict' : 'lax') as 'strict' | 'lax',
+    sameSite: (isProd ? 'none' : 'lax') as 'none' | 'lax',
     maxAge: 1000 * 60 * 60 * 24, // 24 hours
   },
   refreshToken: {
     httpOnly: true,
     secure: isProd,
-    sameSite: (isProd ? 'strict' : 'lax') as 'strict' | 'lax',
+    sameSite: (isProd ? 'none' : 'lax') as 'none' | 'lax',
     maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
   },
 } as const;
@@ -32,7 +32,7 @@ export const COOKIE_OPTIONS = {
 const CLEAR_OPTIONS = {
   httpOnly: true,
   secure: isProd,
-  sameSite: (isProd ? 'strict' : 'lax') as 'strict' | 'lax',
+  sameSite: (isProd ? 'none' : 'lax') as 'none' | 'lax',
 } as const;
 
 /**
