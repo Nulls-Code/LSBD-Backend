@@ -1,4 +1,4 @@
-import { Prisma, PrismaClient } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import prisma from '../../config/prisma';
 import { ConflictError, NotFoundError } from '../../lib/errors';
 import {
@@ -169,7 +169,7 @@ export async function updateCustomer(id: string, data: UpdateCustomerInput) {
  *   4. Creates a new customer if no match is found.
  */
 export async function upsertCustomerTx(
-  tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>,
+  tx: Prisma.TransactionClient,
   senderData: {
     customerId?: string;
     senderName: string;
