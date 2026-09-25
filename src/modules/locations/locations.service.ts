@@ -42,7 +42,13 @@ export async function getLocations(query: QueryLocationsInput) {
   const where: Prisma.LocationWhereInput = {};
 
   if (isActive !== undefined) {
-    where.isActive = isActive;
+    if (typeof isActive === 'boolean') {
+      where.isActive = isActive;
+    } else if (isActive === 'true') {
+      where.isActive = true;
+    } else if (isActive === 'false') {
+      where.isActive = false;
+    }
   }
 
   if (city) {

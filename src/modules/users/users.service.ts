@@ -28,7 +28,13 @@ export async function getUsers(query: QueryUsersInput) {
   }
 
   if (isActive !== undefined) {
-    where.isActive = isActive;
+    if (typeof isActive === 'boolean') {
+      where.isActive = isActive;
+    } else if (isActive === 'true') {
+      where.isActive = true;
+    } else if (isActive === 'false') {
+      where.isActive = false;
+    }
   }
 
   if (search) {

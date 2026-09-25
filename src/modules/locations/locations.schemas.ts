@@ -97,11 +97,11 @@ export const queryLocationsSchema = z.object({
   city: z.string().trim().optional(),
   country: z.string().trim().optional(),
   isActive: z
-    .enum(['true', 'false', 'all'])
+    .union([z.boolean(), z.enum(['true', 'false', 'all'])])
     .optional()
     .transform((val) => {
-      if (val === 'true') return true;
-      if (val === 'false') return false;
+      if (val === true || val === 'true') return true;
+      if (val === false || val === 'false') return false;
       return undefined;
     }),
 });

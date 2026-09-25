@@ -38,10 +38,12 @@ export function validate(schemas: ValidationSchemas) {
       if (!result.success) {
         mergeZodErrors(result.error, errors, 'query');
       } else {
-        for (const key of Object.keys(req.query)) {
-          delete (req.query as Record<string, unknown>)[key];
-        }
-        Object.assign(req.query, result.data);
+        Object.defineProperty(req, 'query', {
+          value: result.data,
+          writable: true,
+          configurable: true,
+          enumerable: true,
+        });
       }
     }
 
@@ -50,10 +52,12 @@ export function validate(schemas: ValidationSchemas) {
       if (!result.success) {
         mergeZodErrors(result.error, errors, 'params');
       } else {
-        for (const key of Object.keys(req.params)) {
-          delete (req.params as Record<string, unknown>)[key];
-        }
-        Object.assign(req.params, result.data);
+        Object.defineProperty(req, 'params', {
+          value: result.data,
+          writable: true,
+          configurable: true,
+          enumerable: true,
+        });
       }
     }
 
