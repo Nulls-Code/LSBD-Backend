@@ -55,7 +55,10 @@ export type Permission =
   | 'shipment:update'
   // Tracking
   | 'tracking:create'
-  | 'tracking:read';
+  | 'tracking:read'
+  // Notifications
+  | 'notification:read'
+  | 'notification:update';
 
 /**
  * Role-to-permissions map.
@@ -69,6 +72,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'request:create', 'request:read', 'request:review', 'request:cancel',
     'shipment:create', 'shipment:read', 'shipment:update',
     'tracking:create', 'tracking:read',
+    'notification:read', 'notification:update',
   ],
   MANAGER: [
     'location:read',
@@ -76,6 +80,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'request:create', 'request:read', 'request:review', 'request:cancel',
     'shipment:create', 'shipment:read', 'shipment:update',
     'tracking:create', 'tracking:read',
+    'notification:read', 'notification:update',
   ],
   EMPLOYEE: [
     'location:read',
@@ -83,6 +88,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'request:create', 'request:read',
     'shipment:read',
     'tracking:create', 'tracking:read',
+    'notification:read', 'notification:update',
   ],
 };
 

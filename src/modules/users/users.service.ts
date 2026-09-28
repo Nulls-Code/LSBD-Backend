@@ -7,6 +7,7 @@ import {
   ConflictError,
   NotFoundError,
 } from '../../lib/errors';
+import { dispatch } from '../notifications/notifications.service';
 import {
   QueryUsersInput,
   UpdateUserInput,
@@ -159,7 +160,7 @@ export async function updateUserStatus(id: string, isActive: boolean, currentUse
   }
 
   try {
-    return await prisma.user.update({
+    const updatedUser = await prisma.user.update({
       where: { id },
       data: { isActive },
       select: {
@@ -173,6 +174,23 @@ export async function updateUserStatus(id: string, isActive: boolean, currentUse
         updatedAt: true,
       },
     });
+
+    // Notify all ADMINs about the status change
+    const notifType = isActive ? 'USER_REACTIVATED' : 'USER_DEACTIVATED';
+    const notifTitle = isActive ? 'Staff Account Reactivated' : 'Staff Account Deactivated';
+    const notifMessage = isActive
+      ? `Staff account for ${updatedUser.firstName} ${updatedUser.lastName} (${updatedUser.email}) has been reactivated.`
+      : `Staff account for ${updatedUser.firstName} ${updatedUser.lastName} (${updatedUser.email}) has been deactivated.`;
+
+    await dispatch({
+      type: notifType,
+      title: notifTitle,
+      message: notifMessage,
+      targetRoles: ['ADMIN'],
+      metadata: { affectedUserId: id, affectedUserEmail: updatedUser.email },
+    });
+
+    return updatedUser;
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2025') {
       throw new NotFoundError('User');
@@ -191,6 +209,15 @@ export async function resetUserPassword(id: string, newPassword: string) {
     await prisma.user.update({
       where: { id },
       data: { passwordHash },
+    });
+
+    // Notify the affected user that their password was reset by an admin
+    await dispatch({
+      type: 'USER_PASSWORD_RESET',
+      title: 'Your Password Has Been Reset',
+      message: 'An administrator has reset your password. Please log in with your new password and consider changing it.',
+      targetUserIds: [id],
+      metadata: { affectedUserId: id },
     });
 
     return { message: 'User password reset successfully' };

@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client';
 import prisma from '../../config/prisma';
 import { NotFoundError } from '../../lib/errors';
+import { dispatch } from '../notifications/notifications.service';
 import { QueryShipmentsInput, UpdateShipmentInput } from './shipments.schemas';
 
 const shipmentListSelect = {
@@ -118,6 +119,24 @@ export async function createShipmentTx(
     },
   });
 
+  // Notify ADMINs and MANAGERs that a new shipment has been created
+  await dispatch(
+    {
+      type: 'SHIPMENT_CREATED',
+      title: 'New Shipment Created',
+      message: `Shipment ${trackingNumber} has been created for ${courierRequest.senderName} (${courierRequest.originLocation.city} → ${courierRequest.destinationLocation.city}).`,
+      targetRoles: ['ADMIN', 'MANAGER'],
+      metadata: {
+        shipmentId: shipment.id,
+        trackingNumber,
+        senderName: courierRequest.senderName,
+        originCity: courierRequest.originLocation.city,
+        destinationCity: courierRequest.destinationLocation.city,
+      },
+    },
+    tx,
+  );
+
   return shipment;
 }
 
@@ -203,8 +222,17 @@ export async function getShipmentById(id: string) {
 }
 
 export async function updateShipment(id: string, data: UpdateShipmentInput) {
+  const previous = await prisma.shipment.findUnique({
+    where: { id },
+    select: { assignedToId: true, trackingNumber: true },
+  });
+
+  if (!previous) {
+    throw new NotFoundError('Shipment');
+  }
+
   try {
-    return await prisma.shipment.update({
+    const updated = await prisma.shipment.update({
       where: { id },
       data,
       include: {
@@ -213,6 +241,35 @@ export async function updateShipment(id: string, data: UpdateShipmentInput) {
         },
       },
     });
+
+    const assigneeChanged =
+      data.assignedToId !== undefined && data.assignedToId !== previous.assignedToId;
+
+    if (assigneeChanged && data.assignedToId) {
+      // Notify the newly assigned employee
+      await dispatch({
+        type: 'SHIPMENT_ASSIGNED',
+        title: 'Shipment Assigned to You',
+        message: `Shipment ${previous.trackingNumber} has been assigned to you.`,
+        targetUserIds: [data.assignedToId],
+        metadata: { shipmentId: id, trackingNumber: previous.trackingNumber },
+      });
+    } else {
+      // General update — notify ADMINs and MANAGERs + assigned employee (if any)
+      const notifTargetIds: string[] = [];
+      if (updated.assignedTo?.id) notifTargetIds.push(updated.assignedTo.id);
+
+      await dispatch({
+        type: 'SHIPMENT_UPDATED',
+        title: 'Shipment Updated',
+        message: `Shipment ${previous.trackingNumber} details have been updated.`,
+        targetRoles: ['ADMIN', 'MANAGER'],
+        targetUserIds: notifTargetIds,
+        metadata: { shipmentId: id, trackingNumber: previous.trackingNumber },
+      });
+    }
+
+    return updated;
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2025') {
       throw new NotFoundError('Shipment');

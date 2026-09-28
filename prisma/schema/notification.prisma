@@ -1,0 +1,42 @@
+enum NotificationType {
+  // Courier Requests
+  REQUEST_SUBMITTED
+  REQUEST_APPROVED
+  REQUEST_REJECTED
+  REQUEST_CANCELLED
+
+  // Shipments
+  SHIPMENT_CREATED
+  SHIPMENT_ASSIGNED
+  SHIPMENT_UPDATED
+  SHIPMENT_STATUS_CHANGED
+
+  // Tracking
+  TRACKING_CHECKPOINT
+
+  // User Management
+  USER_CREATED
+  USER_DEACTIVATED
+  USER_REACTIVATED
+  USER_PASSWORD_RESET
+}
+
+model Notification {
+  id        String           @id @default(uuid()) @db.Uuid
+  userId    String           @map("user_id") @db.Uuid
+  type      NotificationType
+  title     String
+  message   String
+  metadata  Json?
+  isRead    Boolean          @default(false) @map("is_read")
+  readAt    DateTime?        @map("read_at")
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([type])
+  @@map("notifications")
+}

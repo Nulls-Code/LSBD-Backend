@@ -6,6 +6,7 @@ import {
 } from '../../lib/errors';
 import { upsertCustomerTx } from '../customers/customers.service';
 import { createShipmentTx } from '../shipments/shipments.service';
+import { dispatch } from '../notifications/notifications.service';
 import {
   CreateCourierRequestInput,
   QueryCourierRequestsInput,
@@ -125,6 +126,20 @@ export async function createCourierRequest(
       },
       select: courierRequestListSelect,
     });
+  });
+
+  // Notify all ADMINs and MANAGERs about the new request
+  await dispatch({
+    type: 'REQUEST_SUBMITTED',
+    title: 'New Courier Request Submitted',
+    message: `A new courier request from ${courierRequest.senderName} (${courierRequest.originLocation.city} → ${courierRequest.destinationLocation.city}) is awaiting review.`,
+    targetRoles: ['ADMIN', 'MANAGER'],
+    metadata: {
+      requestId: courierRequest.id,
+      senderName: courierRequest.senderName,
+      originCity: courierRequest.originLocation.city,
+      destinationCity: courierRequest.destinationLocation.city,
+    },
   });
 
   return courierRequest;
@@ -259,6 +274,31 @@ export async function reviewCourierRequest(
       await createShipmentTx(tx, request, reviewerId);
     }
 
+    // Resolve notification recipients:
+    // - the creator of the request (if any)
+    // - the reviewer themselves (actor self-notification per user preference)
+    const recipientIds = new Set<string>();
+    if (request.createdById) recipientIds.add(request.createdById);
+    recipientIds.add(reviewerId);
+
+    const notifType = newStatus === 'APPROVED' ? 'REQUEST_APPROVED' : 'REQUEST_REJECTED';
+    const notifTitle = newStatus === 'APPROVED' ? 'Courier Request Approved' : 'Courier Request Rejected';
+    const notifMessage =
+      newStatus === 'APPROVED'
+        ? `Courier request from ${request.senderName} (${request.originLocation.city} → ${request.destinationLocation.city}) has been approved and a shipment has been created.`
+        : `Courier request from ${request.senderName} has been rejected. Reason: ${data.reviewNotes ?? 'No reason provided'}.`;
+
+    await dispatch(
+      {
+        type: notifType,
+        title: notifTitle,
+        message: notifMessage,
+        targetUserIds: Array.from(recipientIds),
+        metadata: { requestId: id, senderName: request.senderName, reviewNotes: data.reviewNotes },
+      },
+      tx,
+    );
+
     return updatedRequest;
   });
 }
@@ -286,7 +326,7 @@ export async function cancelCourierRequest(
     );
   }
 
-  return prisma.courierRequest.update({
+  const updatedRequest = await prisma.courierRequest.update({
     where: { id },
     data: {
       status: 'CANCELLED',
@@ -296,4 +336,15 @@ export async function cancelCourierRequest(
     },
     select: courierRequestListSelect,
   });
+
+  // Notify ADMINs and MANAGERs about the cancellation
+  await dispatch({
+    type: 'REQUEST_CANCELLED',
+    title: 'Courier Request Cancelled',
+    message: `Courier request from ${request.senderName} has been cancelled.`,
+    targetRoles: ['ADMIN', 'MANAGER'],
+    metadata: { requestId: id, senderName: request.senderName, reason: data.reason },
+  });
+
+  return updatedRequest;
 }

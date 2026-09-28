@@ -13,6 +13,7 @@ import {
 } from '../../lib/errors';
 import { RegisterInput, LoginInput, ChangePasswordInput } from './auth.schemas';
 import { UserRole } from '@prisma/client';
+import { dispatch } from '../notifications/notifications.service';
 
 /**
  * Auth service — handles registration, login, and token management.
@@ -232,6 +233,20 @@ export async function register(data: RegisterInput, creatorRole?: UserRole) {
       firstName: data.firstName,
       lastName: data.lastName,
       role: data.role as UserRole,
+    },
+  });
+
+  // Notify all ADMINs about the new staff account
+  await dispatch({
+    type: 'USER_CREATED',
+    title: 'New Staff Account Created',
+    message: `A new ${data.role} account has been created for ${data.firstName} ${data.lastName} (${data.email}).`,
+    targetRoles: ['ADMIN'],
+    metadata: {
+      newUserId: user.id,
+      newUserName: `${data.firstName} ${data.lastName}`,
+      email: data.email,
+      role: data.role,
     },
   });
 

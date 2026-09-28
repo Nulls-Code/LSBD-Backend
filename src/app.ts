@@ -15,6 +15,8 @@ import { customerRoutes } from './modules/customers';
 import { courierRequestRoutes } from './modules/courierRequests';
 import { shipmentRoutes } from './modules/shipments';
 import { publicTrackingRoutes } from './modules/tracking';
+import { notificationRoutes } from './modules/notifications';
+import { purgeExpiredNotifications } from './modules/notifications';
 
 const app = express();
 
@@ -98,6 +100,18 @@ app.use('/api/v1/customers', customerRoutes);
 app.use('/api/v1/courier-requests', courierRequestRoutes);
 app.use('/api/v1/shipments', shipmentRoutes);
 app.use('/api/v1/tracking', publicTrackingRoutes);
+app.use('/api/v1/notifications', notificationRoutes);
+
+// ---------------------------------------------------------------------------
+// Daily notification retention purge (15-day TTL)
+// Runs 5 minutes after startup, then every 24 hours.
+// ---------------------------------------------------------------------------
+setTimeout(() => {
+  purgeExpiredNotifications().catch(console.error);
+  setInterval(() => {
+    purgeExpiredNotifications().catch(console.error);
+  }, 24 * 60 * 60 * 1000);
+}, 5 * 60 * 1000);
 
 app.use((_req, res) => {
   res.status(404).json({

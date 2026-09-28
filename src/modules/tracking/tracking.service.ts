@@ -1,6 +1,7 @@
 import prisma from '../../config/prisma';
 import { ShipmentStatus, UserRole } from '@prisma/client';
 import { NotFoundError, ForbiddenError, BadRequestError } from '../../lib/errors';
+import { dispatch } from '../notifications/notifications.service';
 import { AddTrackingUpdateInput } from './tracking.schemas';
 
 // Define the order of states for backward flow checking
@@ -88,6 +89,45 @@ export const addTrackingUpdate = async (
         ...(locationId && { currentLocationId: locationId }),
       },
     });
+
+    // Notify ADMINs and MANAGERs of the new checkpoint
+    const checkpointTargetIds: string[] = [];
+    if (shipment.assignedToId) checkpointTargetIds.push(shipment.assignedToId);
+
+    await dispatch(
+      {
+        type: 'TRACKING_CHECKPOINT',
+        title: 'Tracking Checkpoint Logged',
+        message: `A new checkpoint (${status.replace(/_/g, ' ')}) has been recorded for shipment ${shipment.trackingNumber}.`,
+        targetRoles: ['ADMIN', 'MANAGER'],
+        metadata: {
+          shipmentId,
+          trackingNumber: shipment.trackingNumber,
+          status,
+          description,
+        },
+      },
+      tx,
+    );
+
+    // If the status changed, also notify the assigned employee
+    if (status !== shipment.currentStatus && shipment.assignedToId) {
+      await dispatch(
+        {
+          type: 'SHIPMENT_STATUS_CHANGED',
+          title: 'Shipment Status Updated',
+          message: `Shipment ${shipment.trackingNumber} status changed from ${shipment.currentStatus.replace(/_/g, ' ')} to ${status.replace(/_/g, ' ')}.`,
+          targetUserIds: [shipment.assignedToId],
+          metadata: {
+            shipmentId,
+            trackingNumber: shipment.trackingNumber,
+            previousStatus: shipment.currentStatus,
+            newStatus: status,
+          },
+        },
+        tx,
+      );
+    }
 
     return update;
   });

@@ -16,6 +16,7 @@ model User {
   assignedShipments Shipment[]      @relation("ShipmentAssignedTo")
   trackingUpdates   TrackingUpdate[]
   refreshTokens     RefreshToken[]
+  notifications     Notification[]
 
   @@index([role])
   @@index([isActive])
